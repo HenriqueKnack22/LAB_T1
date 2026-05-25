@@ -28,7 +28,7 @@ SERVIDORES_DNS = {
     "Adicionais Escolhidos": {
         "Control D": "76.76.2.0",
         "Comodo Secure": "8.26.56.26",
-        "DNS Provedor Local (RLNET/PUCRS)": "200.215.1.1", # Ajuste se souber o seu, ou use um público alternativo
+        "DNS Provedor Local (RLNET/PUCRS)": "200.215.1.1",
         "Mullvad DNS": "194.242.2.2",
         "Freenom World": "80.80.80.80"
     }
@@ -174,6 +174,140 @@ def rodar_benchmark_latencia(n_queries: int = 10) -> list:
     return resultados
 
 
+# Mede a latência DoT de um servidor com N consultas e registra também os bytes de aplicação trafegados.
+def medir_latencia_dot(nome: str, ip: str,
+                        dominio: str = "www.example.com",
+                        n_queries: int = 10) -> dict:
+    latencias = []
+    bytes_totais = []
+    falhas = 0
+
+    for i in range(n_queries):
+        print(f"    [DoT {i+1}/{n_queries}] ", end="", flush=True)
+        query = build_dns_query(dominio)
+        t0 = time.perf_counter()
+        try:
+            response = send_dns_query_dot(query, ip)
+            t1 = time.perf_counter()
+            ms = (t1 - t0) * 1000.0
+            latencias.append(ms)
+            bytes_totais.append(2 + len(query) + 2 + len(response))
+            print(f"{ms:.1f}ms  ({2 + len(query) + 2 + len(response)}B)", flush=True)
+        except Exception as e:
+            falhas += 1
+            print(f"FALHA ({e})", flush=True)
+
+    perda_pct = (falhas / n_queries) * 100.0
+    return {
+        "servidor":      nome,
+        "ip_servidor":   ip,
+        "dot_avg_ms":    sum(latencias) / len(latencias) if latencias else None,
+        "dot_min_ms":    min(latencias) if latencias else None,
+        "dot_max_ms":    max(latencias) if latencias else None,
+        "dot_perda_pct": perda_pct,
+        "dot_bytes_avg": sum(bytes_totais) / len(bytes_totais) if bytes_totais else None,
+    }
+
+
+# Compara a latência UDP e DoT dos servidores definidos em SERVIDORES_DOT e retorna os resultados.
+def rodar_comparacao_udp_dot(n_queries: int = 10) -> list:
+    DOMINIO = "www.example.com"
+
+    print(f"\n{'='*60}")
+    print(f" Comparação UDP × DoT — Domínio: {DOMINIO}")
+    print(f" {n_queries} consultas por protocolo por servidor")
+    print(f"{'='*60}")
+
+    resultados = []
+
+    for nome, ip in SERVIDORES_DOT.items():
+        print(f"\n{'─'*50}")
+        print(f" {nome} ({ip})")
+
+        print(f"\n  [UDP] Medindo...")
+        udp = medir_latencia_servidor(nome, ip, "Sem Filtragem",
+                                       dominio=DOMINIO, n_queries=n_queries)
+
+        q = build_dns_query(DOMINIO)
+        try:
+            r = send_dns_query(q, ip)
+            udp_bytes = len(q) + len(r)
+        except Exception:
+            udp_bytes = None
+
+        if udp["avg_ms"] is not None:
+            print(f"  >> UDP avg={udp['avg_ms']:.1f}ms  min={udp['min_ms']:.1f}ms  "
+                  f"max={udp['max_ms']:.1f}ms  bytes={udp_bytes}")
+        else:
+            print(f"  >> UDP: 100% de perda")
+
+        print(f"\n  [DoT] Medindo...")
+        dot = medir_latencia_dot(nome, ip, dominio=DOMINIO, n_queries=n_queries)
+
+        if dot["dot_avg_ms"] is not None:
+            print(f"  >> DoT avg={dot['dot_avg_ms']:.1f}ms  min={dot['dot_min_ms']:.1f}ms  "
+                  f"max={dot['dot_max_ms']:.1f}ms  bytes_avg={dot['dot_bytes_avg']:.0f}")
+        else:
+            print(f"  >> DoT: 100% de falhas")
+
+        overhead_ms = (
+            round(dot["dot_avg_ms"] - udp["avg_ms"], 2)
+            if dot["dot_avg_ms"] is not None and udp["avg_ms"] is not None
+            else None
+        )
+
+        overhead_bytes = (
+            round(dot["dot_bytes_avg"] - udp_bytes, 0)
+            if dot["dot_bytes_avg"] is not None and udp_bytes is not None
+            else None
+        )
+
+        resultados.append({
+            "servidor":        nome,
+            "ip_servidor":     ip,
+            "udp_avg_ms":      udp["avg_ms"],
+            "udp_min_ms":      udp["min_ms"],
+            "udp_max_ms":      udp["max_ms"],
+            "udp_perda_pct":   udp["perda_pct"],
+            "udp_bytes":       udp_bytes,
+            "dot_avg_ms":      dot["dot_avg_ms"],
+            "dot_min_ms":      dot["dot_min_ms"],
+            "dot_max_ms":      dot["dot_max_ms"],
+            "dot_perda_pct":   dot["dot_perda_pct"],
+            "dot_bytes_avg":   dot["dot_bytes_avg"],
+            "overhead_lat_ms": overhead_ms,
+            "overhead_bytes":  overhead_bytes,
+        })
+
+    return resultados
+
+
+# Salva os resultados da comparação UDP × DoT no arquivo comparacao_udp_dot.csv.
+def salvar_comparacao_csv(resultados: list) -> None:
+    campos = [
+        "servidor", "latencia_media_udp_ms", "latencia_media_dot_ms", "overhead_pacotes_bytes",
+    ]
+
+    def fmt(v, casas=2):
+        return f"{v:.{casas}f}" if v is not None else "N/A"
+
+    rows = []
+    for r in resultados:
+        rows.append({
+            "servidor":                r["servidor"],
+            "latencia_media_udp_ms":   fmt(r["udp_avg_ms"]),
+            "latencia_media_dot_ms":   fmt(r["dot_avg_ms"]),
+            "overhead_pacotes_bytes":  fmt(r["overhead_bytes"], 0),
+        })
+
+    with open("comparacao_udp_dot.csv", "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=campos)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"\n[SUCESSO] Comparação UDP × DoT salva em 'comparacao_udp_dot.csv'!")
+
+
 def salvar_benchmark_csv(resultados: list) -> None:
     """Salva os resultados do benchmark de latência em resultados.csv."""
     campos = [
@@ -217,9 +351,30 @@ def main():
     parser.add_argument("--benchmark", action="store_true",
                         help="Executa benchmark de latência (10 consultas/servidor) para www.example.com "
                              "e salva o ranking em resultados.csv")
+    parser.add_argument("--dot", action="store_true",
+                        help="Compara latência UDP × DoT para Google, Cloudflare e Quad9 "
+                             "→ comparacao_udp_dot.csv")
     args = parser.parse_args()
 
-    if args.benchmark:
+    if args.dot:
+        # ── Modo Comparação UDP × DoT ────────────────────────────────────────
+        resultados = rodar_comparacao_udp_dot(n_queries=10)
+
+        print("\n" + "=" * 80)
+        print(" COMPARAÇÃO UDP × DoT")
+        print("=" * 80)
+        print(f"{'Servidor':<25} {'Lat. Média UDP (ms)':<22} {'Lat. Média DoT (ms)':<22} {'Overhead Pacotes (B)'}")
+        print("-" * 80)
+        for r in resultados:
+            udp = f"{r['udp_avg_ms']:.1f}" if r["udp_avg_ms"] is not None else "N/A"
+            dot = f"{r['dot_avg_ms']:.1f}" if r["dot_avg_ms"] is not None else "N/A"
+            ovh = f"+{r['overhead_bytes']:.0f}" if r["overhead_bytes"] is not None else "N/A"
+            print(f"{r['servidor']:<25} {udp:<22} {dot:<22} {ovh}")
+        print("=" * 80)
+
+        salvar_comparacao_csv(resultados)
+
+    elif args.benchmark:
         # ── Modo Benchmark de Latência ──────────────────────────────────────
         resultados = rodar_benchmark_latencia(n_queries=10)
 

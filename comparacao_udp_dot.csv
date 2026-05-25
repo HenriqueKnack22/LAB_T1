@@ -1,4 +1,4 @@
-servidor,ip_servidor,udp_avg_ms,udp_min_ms,udp_max_ms,udp_perda_pct,udp_bytes,dot_avg_ms,dot_min_ms,dot_max_ms,dot_perda_pct,dot_bytes_avg,overhead_lat_ms
-Google Public DNS,8.8.8.8,38.11,29.23,87.79,0.0,98,229.65,190.08,276.42,0.0,102,191.54
-Cloudflare,1.1.1.1,4.63,3.51,7.62,0.0,98,87.37,71.07,113.83,0.0,102,82.73
-Quad9,9.9.9.9,3.71,3.33,4.45,0.0,98,39.04,31.91,56.87,0.0,102,35.33
+servidor,latencia_media_udp_ms,latencia_media_dot_ms,overhead_pacotes_bytes
+Google Public DNS,28.04,150.80,4
+Cloudflare,18.54,136.61,4
+Quad9,4.06,37.11,4

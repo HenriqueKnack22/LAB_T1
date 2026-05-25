@@ -75,7 +75,6 @@ def send_dns_dot_query(packet: bytes, server_host: str, server_ip: str) -> bytes
             
         response_len = struct.unpack("!H", response_len_bytes)[0]
         
-        # Agora lemos o resto dos bytes da resposta baseados no tamanho descoberto
         response = secure_sock.recv(response_len)
         return response
         
@@ -167,7 +166,6 @@ def parse_dns_response(response: bytes, query_packet: bytes) -> dict:
 # Realiza uma consulta de teste para www.pucrs.br e imprime o resultado no terminal.
 def main():
     domain = "www.example.com"
-    # Servidor da Cloudflare que aceita DoT
     server_host = "one.one.one.one"
     server_ip = "1.1.1.1"
     

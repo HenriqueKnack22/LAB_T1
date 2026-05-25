@@ -1,0 +1,20 @@
+ranking,categoria,servidor,ip_servidor,tempo_medio_ms,tempo_min_ms,tempo_max_ms,perda_pacotes_pct
+1,Com Filtragem de Segurança,Quad9,9.9.9.9,4.26,2.66,5.87,0.0
+2,Sem Filtragem,Quad9 (sem filtro),9.9.9.10,4.57,2.71,12.62,0.0
+3,Com Filtragem de Segurança,OpenDNS,208.67.222.222,17.37,16.50,18.86,0.0
+4,Com Filtragem de Segurança,CleanBrowsing Security,185.228.168.9,18.05,16.49,22.22,0.0
+5,Sem Filtragem,Cloudflare,1.1.1.1,18.06,17.57,18.86,0.0
+6,Sem Filtragem,Verisign,64.6.64.6,18.24,16.95,19.93,0.0
+7,Sem Filtragem,Cloudflare (secundário),1.0.0.1,18.39,16.94,21.80,0.0
+8,Com Filtragem Familiar,OpenDNS FamilyShield,208.67.222.123,18.77,17.75,20.35,0.0
+9,Adicionais Escolhidos,Control D,76.76.2.0,19.12,17.52,21.11,0.0
+10,Com Filtragem Familiar,CleanBrowsing Family,185.228.168.168,19.32,16.67,24.21,0.0
+11,Com Filtragem Familiar,Cloudflare Family,1.1.1.3,20.10,17.92,25.20,0.0
+12,Com Filtragem Familiar,AdGuard Family,94.140.14.15,20.26,18.59,23.79,10.0
+13,Sem Filtragem,Google Public DNS,8.8.8.8,21.07,17.65,27.54,0.0
+14,Sem Filtragem,Google Public DNS (secundário),8.8.4.4,24.59,17.06,70.63,0.0
+15,Com Filtragem de Segurança,AdGuard DNS,94.140.14.14,56.19,18.01,355.32,0.0
+16,Adicionais Escolhidos,Comodo Secure,8.26.56.26,198.33,142.56,207.94,0.0
+17,Adicionais Escolhidos,Freenom World,80.80.80.80,214.69,197.66,306.87,0.0
+18,Adicionais Escolhidos,Mullvad DNS,194.242.2.2,478.05,395.79,903.25,0.0
+19,Adicionais Escolhidos,DNS Provedor Local (RLNET/PUCRS),200.215.1.1,N/A,N/A,N/A,100.0
